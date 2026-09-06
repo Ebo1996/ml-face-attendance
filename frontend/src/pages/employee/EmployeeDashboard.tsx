@@ -20,8 +20,8 @@ function fmtTime(iso: string | null) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-const STATUS_VARIANTS: Record<string, 'success' | 'warning' | 'info' | 'danger' | 'default'> = {
-  PRESENT: 'success', LATE: 'warning', HALF_DAY: 'info', ABSENT: 'danger', ON_LEAVE: 'default',
+const STATUS_VARIANTS: Record<string, 'success' | 'warning' | 'default' | 'danger'> = {
+  PRESENT: 'success', LATE: 'warning', HALF_DAY: 'default', ABSENT: 'danger', ON_LEAVE: 'default',
 };
 const STATUS_LABELS: Record<string, string> = {
   PRESENT: 'Present', LATE: 'Late', HALF_DAY: 'Half Day', ABSENT: 'Absent', ON_LEAVE: 'On Leave',
