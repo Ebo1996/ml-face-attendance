@@ -90,8 +90,6 @@ export const RegisterPage: React.FC = () => {
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('Registration error:', error);
-      
       if (error.errors) {
         setErrors(error.errors);
       } else {

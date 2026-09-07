@@ -2,42 +2,69 @@
  * Dashboard Header Component
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
 
-export const Header: React.FC = () => {
+export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+    try { await logout(); } catch {}
   };
 
+  // Close dropdown on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showDropdown) {
+        setShowDropdown(false);
+        buttonRef.current?.focus();
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showDropdown]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        !buttonRef.current?.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDropdown]);
+
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div className="px-6 py-4">
-        <div className="flex justify-between items-center">
-          {/* Search Bar (Placeholder) */}
-          <div className="flex-1 max-w-xl">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder="Search..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-10" role="banner">
+      <div className="px-4 md:px-6 py-3">
+        <div className="flex justify-between items-center gap-4">
+
+          {/* Hamburger (mobile only) */}
+          <button
+            className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={onMenuClick}
+            aria-label="Open navigation menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
 
           {/* Right Section */}
           <div className="flex items-center gap-4 ml-6">
@@ -50,10 +77,20 @@ export const Header: React.FC = () => {
             </button>
 
             {/* User Menu */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
+                ref={buttonRef}
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowDropdown(!showDropdown);
+                  }
+                }}
+                className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-expanded={showDropdown}
+                aria-haspopup="true"
+                aria-label="User menu"
               >
                 <Avatar
                   fallback={user?.email?.charAt(0).toUpperCase() || 'U'}
@@ -65,40 +102,62 @@ export const Header: React.FC = () => {
                     {user?.role}
                   </Badge>
                 </div>
-                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
               {/* Dropdown Menu */}
               {showDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowDropdown(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    <a
-                      href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      My Profile
-                    </a>
-                    <a
-                      href="/settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Settings
-                    </a>
-                    <hr className="my-1 border-gray-200" />
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </>
+                <div 
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20"
+                  role="menu"
+                  aria-orientation="vertical"
+                >
+                  <a
+                    href="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
+                    role="menuitem"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        window.location.href = '/profile';
+                      }
+                    }}
+                  >
+                    My Profile
+                  </a>
+                  <a
+                    href="/settings"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
+                    role="menuitem"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        window.location.href = '/settings';
+                      }
+                    }}
+                  >
+                    Settings
+                  </a>
+                  <hr className="my-1 border-gray-200" />
+                  <button
+                    onClick={handleLogout}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleLogout();
+                      }
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
+                    role="menuitem"
+                    tabIndex={0}
+                  >
+                    Logout
+                  </button>
+                </div>
               )}
             </div>
           </div>

@@ -283,3 +283,78 @@ def get_attendance_service() -> AttendanceService:
     if _service is None:
         _service = AttendanceService()
     return _service
+
+
+    # ── Face-recognition-triggered helpers ───────────────────────────
+    # Called by the recognition API after identity has already been
+    # confirmed by the ML matching engine.
+
+    def check_in_without_face(self, user) -> Dict[str, Any]:
+        """Mark check-in for *user* (face already verified by caller)."""
+        from .models import AttendanceRecord
+        from datetime import timedelta
+
+        today = timezone.localdate()
+        now   = timezone.now()
+
+        record, created = AttendanceRecord.objects.get_or_create(
+            user=user, date=today,
+            defaults={'status': 'PRESENT', 'check_in_method': 'FACE_RECOGNITION'},
+        )
+
+        if not created and record.is_checked_in:
+            return {
+                'success': True,
+                'action': 'ALREADY_CHECKED_IN',
+                'message': f"Already checked in at {record.check_in_time.strftime('%H:%M')}",
+                'attendance': _serialize_record(record),
+            }
+
+        work_start = now.replace(hour=WORK_START_HOUR, minute=0, second=0, microsecond=0)
+        record.check_in_time     = now
+        record.check_in_method   = 'FACE_RECOGNITION'
+        record.status = 'LATE' if now > work_start + timedelta(minutes=LATE_THRESHOLD_MINUTES) else 'PRESENT'
+        record.save()
+
+        return {
+            'success': True,
+            'action': 'CHECKED_IN',
+            'message': f"Check-in successful ({record.status})",
+            'attendance': _serialize_record(record),
+        }
+
+    def check_out_without_face(self, user) -> Dict[str, Any]:
+        """Mark check-out for *user* (face already verified by caller)."""
+        from .models import AttendanceRecord
+
+        today = timezone.localdate()
+        try:
+            record = AttendanceRecord.objects.get(user=user, date=today)
+        except AttendanceRecord.DoesNotExist:
+            return {'success': False, 'error': 'No check-in found for today.'}
+
+        if not record.is_checked_in:
+            return {'success': False, 'error': 'You have not checked in today.'}
+
+        if record.is_checked_out:
+            return {
+                'success': True,
+                'action': 'ALREADY_CHECKED_OUT',
+                'message': f"Already checked out at {record.check_out_time.strftime('%H:%M')}",
+                'attendance': _serialize_record(record),
+            }
+
+        now = timezone.now()
+        record.check_out_time   = now
+        record.check_out_method = 'FACE_RECOGNITION'
+        record.work_hours       = record.compute_work_hours()
+        if record.work_hours is not None and record.work_hours < HALF_DAY_HOURS and record.status == 'PRESENT':
+            record.status = 'HALF_DAY'
+        record.save()
+
+        return {
+            'success': True,
+            'action': 'CHECKED_OUT',
+            'message': f"Check-out successful. Worked {record.work_hours:.1f}h." if record.work_hours else "Check-out successful.",
+            'attendance': _serialize_record(record),
+        }

@@ -8,6 +8,10 @@ from . import views
 app_name = 'attendance'
 
 urlpatterns = [
+    # ── Spec canonical endpoints ──────────────────────────────────────
+    path('',                    views.attendance_list_api,    name='attendance-list'),
+    path('<str:record_id>/',    views.attendance_detail_api,  name='attendance-detail'),
+
     # ── Employee: check-in / check-out ────────────────────────────────
     path('check-in/',   views.check_in_api,     name='check-in'),
     path('check-out/',  views.check_out_api,    name='check-out'),
@@ -29,4 +33,8 @@ urlpatterns = [
     path('admin/stats/monthly/', views.admin_monthly_stats_api, name='admin-monthly-stats'),
     path('admin/stats/recent/',  views.admin_recent_days_api,   name='admin-recent-days'),
     path('admin/list/',          views.admin_list_api,          name='admin-list'),
+
+    # ── Reports / CSV export (Phase 19) ──────────────────────────────
+    path('export/my/',    views.export_my_attendance_csv, name='export-my'),
+    path('export/admin/', views.admin_export_csv,         name='export-admin'),
 ]

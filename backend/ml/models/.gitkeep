@@ -1,0 +1,8 @@
+# InsightFace buffalo_l ONNX models are downloaded here automatically
+# on first initialisation (~280 MB).
+# Cached location: ~/.insightface/models/buffalo_l/
+#   det_10g.onnx      — SCRFD face detection
+#   w600k_r50.onnx    — ArcFace recognition (512-d embeddings)
+#   genderage.onnx    — age / gender estimation
+#   1k3d68.onnx       — 3-D facial landmarks
+#   2d106det.onnx     — 2-D facial landmarks

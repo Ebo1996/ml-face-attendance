@@ -70,12 +70,9 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(formData);
-      
-      // Redirect to dashboard
+      // Redirect to spec-correct path — DashboardPage handles role-based redirect
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('Login error:', error);
-      
       if (error.errors) {
         setErrors(error.errors);
       } else {

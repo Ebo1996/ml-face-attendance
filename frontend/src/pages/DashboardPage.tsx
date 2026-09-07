@@ -1,13 +1,16 @@
 /**
- * Dashboard Page — routes to appropriate dashboard based on role
+ * DashboardPage — redirects to role-appropriate dashboard
  */
 
-import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { EmployeeDashboard } from './employee/EmployeeDashboard';
-import { AdminDashboard } from './admin/AdminDashboard';
 
-export const DashboardPage: React.FC = () => {
+export const DashboardPage = () => {
   const { user } = useAuth();
-  return user?.role === 'ADMIN' ? <AdminDashboard /> : <EmployeeDashboard />;
+  return (
+    <Navigate
+      to={user?.role === 'ADMIN' ? '/admin/dashboard' : '/employee/dashboard'}
+      replace
+    />
+  );
 };

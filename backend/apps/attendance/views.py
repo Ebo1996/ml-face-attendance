@@ -385,3 +385,188 @@ def admin_list_api(request):
         'total_pages': result['total_pages'],
         'records':     records_serializer.data,
     })
+
+
+# =========================================================
+# Phase 19 – Reports / CSV export
+# =========================================================
+
+import csv
+from django.http import HttpResponse
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def export_my_attendance_csv(request):
+    """
+    Employee exports their own attendance as CSV.
+    GET /api/attendance/export/my/?start_date=...&end_date=...
+    """
+    qs = AttendanceHistoryQuerySerializer(data=request.query_params)
+    if not qs.is_valid():
+        return Response({'error': qs.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    svc = get_attendance_service()
+    records = svc.get_user_history(
+        request.user,
+        start_date=qs.validated_data.get('start_date'),
+        end_date=qs.validated_data.get('end_date'),
+        limit=qs.validated_data.get('limit', 1000),
+    )
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="my_attendance.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Status', 'Check In', 'Check Out', 'Work Hours', 'Method', 'Notes'])
+    for r in records:
+        writer.writerow([
+            r.date,
+            r.status,
+            r.check_in_time.strftime('%H:%M') if r.check_in_time else '',
+            r.check_out_time.strftime('%H:%M') if r.check_out_time else '',
+            r.work_hours or '',
+            r.check_in_method,
+            r.notes,
+        ])
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_export_csv(request):
+    """
+    Admin exports all (or filtered) attendance as CSV.
+    GET /api/attendance/export/admin/?start_date=...&end_date=...&status=...&user_id=...
+    """
+    if request.user.role != 'ADMIN':
+        return Response({'error': 'Admin access required'}, status=status.HTTP_403_FORBIDDEN)
+
+    from .serializers import AdminListQuerySerializer
+    from .models import AttendanceRecord
+
+    qs = AdminListQuerySerializer(data=request.query_params)
+    if not qs.is_valid():
+        return Response({'error': qs.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    d = qs.validated_data
+    queryset = AttendanceRecord.objects.select_related('user').order_by('-date', '-check_in_time')
+    if d.get('start_date'):
+        queryset = queryset.filter(date__gte=d['start_date'])
+    if d.get('end_date'):
+        queryset = queryset.filter(date__lte=d['end_date'])
+    if d.get('status'):
+        queryset = queryset.filter(status=d['status'])
+    if d.get('user_id'):
+        queryset = queryset.filter(user_id=d['user_id'])
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="attendance_report.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Employee', 'Email', 'Status', 'Check In', 'Check Out',
+                     'Work Hours', 'Method', 'Admin Override', 'Notes'])
+    for r in queryset[:5000]:  # cap at 5000 rows
+        writer.writerow([
+            r.date,
+            f"{r.user.first_name} {r.user.last_name}".strip() or r.user.email,
+            r.user.email,
+            r.status,
+            r.check_in_time.strftime('%H:%M') if r.check_in_time else '',
+            r.check_out_time.strftime('%H:%M') if r.check_out_time else '',
+            r.work_hours or '',
+            r.check_in_method,
+            'Yes' if r.admin_override else 'No',
+            r.notes,
+        ])
+    return response
+
+
+# =========================================================
+# Spec canonical endpoints (Gap 2)
+#   GET /api/attendance/        — list records (scoped by role)
+#   GET /api/attendance/{id}/   — single record detail
+# =========================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def attendance_list_api(request):
+    """
+    GET /api/attendance/
+
+    Returns attendance records scoped by role:
+      EMPLOYEE — own records only (last 30 by default)
+      ADMIN    — all records, with optional filters
+
+    Query params:
+      start_date, end_date  YYYY-MM-DD
+      status                PRESENT | LATE | HALF_DAY | ABSENT | ON_LEAVE
+      user_id               (admin only) filter by employee
+      page, page_size       pagination (admin only)
+    """
+    from .models import AttendanceRecord
+    from .serializers import AdminListQuerySerializer
+
+    if request.user.role == 'ADMIN':
+        qs_ser = AdminListQuerySerializer(data=request.query_params)
+        if not qs_ser.is_valid():
+            return Response({'error': qs_ser.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        d = qs_ser.validated_data
+        from .stats_service import admin_attendance_list
+        result = admin_attendance_list(
+            start_date=d.get('start_date'),
+            end_date=d.get('end_date'),
+            status_filter=d.get('status') or None,
+            user_id=d.get('user_id') or None,
+            page=d.get('page', 1),
+            page_size=d.get('page_size', 20),
+        )
+        serializer = AttendanceRecordSerializer(result['records'], many=True)
+        return Response({
+            'total':       result['total'],
+            'page':        result['page'],
+            'page_size':   result['page_size'],
+            'total_pages': result['total_pages'],
+            'results':     serializer.data,
+        })
+
+    # EMPLOYEE — own records only
+    qs_ser = AttendanceHistoryQuerySerializer(data=request.query_params)
+    if not qs_ser.is_valid():
+        return Response({'error': qs_ser.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    svc = get_attendance_service()
+    records = svc.get_user_history(
+        request.user,
+        start_date=qs_ser.validated_data.get('start_date'),
+        end_date=qs_ser.validated_data.get('end_date'),
+        limit=qs_ser.validated_data.get('limit', 30),
+    )
+    serializer = AttendanceRecordSerializer(records, many=True)
+    return Response({'results': serializer.data, 'total': len(serializer.data)})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def attendance_detail_api(request, record_id):
+    """
+    GET /api/attendance/{id}/
+
+    Returns a single attendance record.
+      EMPLOYEE — may only access own records.
+      ADMIN    — may access any record.
+    """
+    from .models import AttendanceRecord
+
+    try:
+        record = AttendanceRecord.objects.select_related('user').get(pk=record_id)
+    except AttendanceRecord.DoesNotExist:
+        return Response({'error': 'Attendance record not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Ownership check for employees
+    if request.user.role != 'ADMIN' and record.user_id != request.user.pk:
+        return Response({'error': 'Not authorised to view this record.'}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = AttendanceRecordSerializer(record)
+    return Response(serializer.data)

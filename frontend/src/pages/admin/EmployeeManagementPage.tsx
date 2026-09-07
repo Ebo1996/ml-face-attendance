@@ -33,7 +33,7 @@ export const EmployeeManagementPage: React.FC = () => {
       setEmployees(employeesData);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load employees:', error);
+      // Error handling - could set error state here
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export const EmployeeManagementPage: React.FC = () => {
       });
       setEmployees(data);
     } catch (error) {
-      console.error('Search failed:', error);
+      // Error handling - could set error state here
     } finally {
       setLoading(false);
     }
@@ -254,20 +254,23 @@ export const EmployeeManagementPage: React.FC = () => {
                       <div className="flex gap-2">
                         <button
                           className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                          onClick={() => console.log('View', employee.id)}
+                          onClick={() => {/* TODO: Implement view employee */}}
+                          aria-label={`View ${employee.full_name}`}
                         >
                           View
                         </button>
                         <button
                           className="text-gray-600 hover:text-gray-700 text-sm font-medium"
-                          onClick={() => console.log('Edit', employee.id)}
+                          onClick={() => {/* TODO: Implement edit employee */}}
+                          aria-label={`Edit ${employee.full_name}`}
                         >
                           Edit
                         </button>
                         {employee.is_active && (
                           <button
                             className="text-red-600 hover:text-red-700 text-sm font-medium"
-                            onClick={() => console.log('Deactivate', employee.id)}
+                            onClick={() => {/* TODO: Implement deactivate employee */}}
+                            aria-label={`Deactivate ${employee.full_name}`}
                           >
                             Deactivate
                           </button>

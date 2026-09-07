@@ -166,8 +166,11 @@ CORS_ALLOWED_ORIGINS = os.getenv(
 CORS_ALLOW_CREDENTIALS = True
 
 # Face Recognition Settings
-FACE_RECOGNITION_THRESHOLD = float(os.getenv('FACE_RECOGNITION_THRESHOLD', 0.4))
-FACE_DETECTION_CONFIDENCE = float(os.getenv('FACE_DETECTION_CONFIDENCE', 0.5))
+FACE_RECOGNITION_THRESHOLD    = float(os.getenv('FACE_RECOGNITION_THRESHOLD', 0.4))
+FACE_DETECTION_CONFIDENCE     = float(os.getenv('FACE_DETECTION_CONFIDENCE', 0.5))
+# Spec-aligned threshold names (used by ml/matching_service.py)
+FACE_VERIFICATION_THRESHOLD   = float(os.getenv('FACE_VERIFICATION_THRESHOLD', 0.60))
+FACE_IDENTIFICATION_THRESHOLD = float(os.getenv('FACE_IDENTIFICATION_THRESHOLD', 0.55))
 
 # ML Models Directory
 ML_MODELS_DIR = BASE_DIR / 'ml' / 'models'
@@ -175,3 +178,77 @@ ML_MODELS_DIR = BASE_DIR / 'ml' / 'models'
 # Create necessary directories
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 os.makedirs(ML_MODELS_DIR, exist_ok=True)
+
+# ── Security hardening (Phase 20) ────────────────────────────────────
+
+# Rate limiting via Django REST Framework throttling
+REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = [
+    'rest_framework.throttling.AnonRateThrottle',
+    'rest_framework.throttling.UserRateThrottle',
+    'config.throttles.AuthRateThrottle',
+    'config.throttles.FaceRateThrottle',
+]
+REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
+    'anon':   '30/minute',
+    'user':   '300/minute',
+    'auth':   '10/minute',    # login / register
+    'face':   '20/minute',    # face register / recognize
+}
+
+# CORS: allow specific headers and methods only
+CORS_ALLOW_METHODS = [
+    'DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Security headers (active in production when DEBUG=False)
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000        # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+
+# File upload limits
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django.security': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'apps':            {'handlers': ['console'], 'level': 'INFO',    'propagate': False},
+    },
+}

@@ -25,7 +25,6 @@ export const ProfilePage: React.FC = () => {
   const handleSave = async (data: any) => {
     try {
       // TODO: API call to update profile
-      console.log('Saving profile:', data);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -37,7 +36,6 @@ export const ProfilePage: React.FC = () => {
       setSuccessMessage('Profile updated successfully!');
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
-      console.error('Save error:', error);
       throw error;
     }
   };

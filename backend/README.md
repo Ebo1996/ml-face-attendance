@@ -1,213 +1,302 @@
-# Face Attendance System - Backend
+# Face Attendance System — Backend
 
-Django REST Framework backend with MongoDB and Machine Learning-based face recognition using InsightFace.
+Django REST Framework backend with MongoDB Atlas and ML-based face recognition using InsightFace buffalo_l.
+
+> ⚠️ **MongoDB Backend Notice:** This project uses [`django-mongodb-backend`](https://github.com/mongodb-labs/django-mongodb-backend), which is currently a **public preview** technology. It is suitable for development and testing. Review the official MongoDB documentation before deploying to production.
+
+---
 
 ## Tech Stack
 
-- **Django 5.0** - Web framework
-- **Django REST Framework** - REST API
-- **MongoDB Atlas** - Database (using `django-mongodb-backend`)
-- **Simple JWT** - JWT authentication
-- **InsightFace** - Pretrained face recognition (buffalo_l model)
-- **OpenCV** - Image processing
-- **Python 3.10+** - Programming language
+| Component | Technology |
+|---|---|
+| Web framework | Django 5.x |
+| REST API | Django REST Framework 3.14 |
+| Authentication | Simple JWT |
+| Database | MongoDB Atlas via `django-mongodb-backend` |
+| Face detection | InsightFace SCRFD (det_10g.onnx) |
+| Face recognition | InsightFace buffalo_l (w600k_r50.onnx, ArcFace ResNet-50) |
+| Image processing | OpenCV |
+| ML inference | ONNX Runtime (CPU / CUDA) |
+| Numerical ops | NumPy, scikit-learn |
+| Python | 3.10+ |
+
+---
+
+## Architecture
+
+```
+React Frontend
+      │  REST API (JSON)
+      ▼
+Django REST Framework (Port 8000)
+  ├── apps/accounts/      JWT auth, user model
+  ├── apps/employees/     Employee CRUD
+  ├── apps/attendance/    Attendance records + stats
+  ├── apps/recognition/   POST /api/face/register|recognize
+  ├── apps/dashboard/     Admin + employee dashboard stats
+  └── apps/ml_service/    FaceDetector, FaceRecognizer, FaceEmbedding model
+      │
+      ├── InsightFace buffalo_l (pretrained)
+      │     SCRFD detection → ArcFace embedding
+      └── MongoDB Atlas
+            Users, Employees, FaceEmbeddings, Attendance
+```
+
+---
 
 ## Project Structure
 
 ```
 backend/
-├── config/                 # Django project configuration
-│   ├── settings.py         # Django settings
-│   ├── urls.py             # URL routing
-│   ├── wsgi.py             # WSGI configuration
-│   └── asgi.py             # ASGI configuration
-├── apps/                   # Django applications
-│   ├── accounts/           # User authentication & management
-│   ├── employees/          # Employee management
-│   ├── attendance/         # Attendance tracking
-│   ├── recognition/        # Face recognition API
-│   └── dashboard/          # Dashboard statistics
-├── ml/                     # Machine Learning components
-│   ├── models/             # ML model files (downloaded at runtime)
-│   ├── face_detector.py    # Face detection (InsightFace SCRFD)
-│   ├── face_recognizer.py  # Face recognition (buffalo_l)
-│   ├── embedding_service.py # Face embedding generation
-│   └── matching_service.py  # Face matching logic
-├── media/                  # User-uploaded files
-├── manage.py               # Django management script
-├── requirements.txt        # Python dependencies
-└── .env                    # Environment variables
+├── config/
+│   ├── settings.py          # All Django settings (Phase 20: security hardening)
+│   ├── urls.py              # Root URL routing
+│   ├── throttles.py         # AuthRateThrottle, FaceRateThrottle (Phase 20)
+│   ├── wsgi.py
+│   └── asgi.py
+├── apps/
+│   ├── accounts/            # User model, JWT login/register/me/logout
+│   ├── employees/           # Employee CRUD, profile, stats
+│   ├── attendance/          # Check-in/out, history, stats, CSV export
+│   ├── recognition/         # /api/face/register/ and /api/face/recognize/
+│   ├── ml_service/          # InsightFace wrappers, FaceEmbedding model, cache
+│   └── dashboard/           # /api/dashboard/admin/ and /api/dashboard/employee/
+├── ml/
+│   ├── face_detector.py     # Facade over apps/ml_service/face_detector
+│   ├── face_recognizer.py   # Facade over apps/ml_service/face_recognizer
+│   ├── embedding_service.py # End-to-end image → 512-d embedding
+│   ├── matching_service.py  # Verification + identification logic
+│   └── evaluation/
+│       ├── evaluate.py      # Phase 21: FAR/FRR/EER/AUC evaluation CLI
+│       ├── evaluation_report.json
+│       └── EVALUATION_REPORT.md
+├── manage.py
+├── requirements.txt
+├── ML_ARCHITECTURE.md       # Full ML pipeline documentation
+├── SECURITY.md              # Phase 20 security documentation
+└── .env.example
 ```
 
-## Important: MongoDB Backend
-
-This project uses **django-mongodb-backend**, which is currently a **public preview technology** from MongoDB. This is an experimental backend that may have limitations compared to the standard PostgreSQL/MySQL backends.
-
-**Known considerations:**
-- Some Django ORM features may not be fully supported
-- Production use should be carefully evaluated
-- Monitor MongoDB's official updates for stability improvements
+---
 
 ## Setup
 
-### 1. Create Virtual Environment
+### 1. Virtual environment
 
-Windows:
 ```bash
+# Windows
 python -m venv venv
 venv\Scripts\activate
-```
 
-Linux/Mac:
-```bash
+# Linux / macOS
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 2. Install Dependencies
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
+InsightFace downloads the buffalo_l model pack (~300 MB) on first use. It is saved to `~/.insightface/models/buffalo_l/`.
 
-Create `.env` file:
+### 3. Configure environment
+
 ```bash
 cp .env.example .env
+# Edit .env — set SECRET_KEY, MONGODB_URI, MONGODB_DATABASE
 ```
 
-Update the following in `.env`:
+Minimum required `.env`:
 ```env
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=your-50-char-secret-key
 DEBUG=True
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/
 MONGODB_DATABASE=face_attendance
 ```
 
-### 4. Run Migrations
+### 4. Run migrations
 
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 5. Create Superuser (Optional)
+### 5. (Optional) Create admin superuser
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 6. Run Development Server
+### 6. Start server
 
 ```bash
 python manage.py runserver
 ```
 
-The API will be available at `http://localhost:8000`
+API available at `http://localhost:8000`
 
-## API Endpoints
+---
+
+## API Reference
 
 ### Authentication
-- `POST /api/auth/login/` - User login
-- `POST /api/auth/register/` - User registration
-- `POST /api/auth/refresh/` - Refresh JWT token
-- `GET /api/auth/me/` - Get current user
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register/` | Register new user |
+| POST | `/api/auth/login/` | Login, returns JWT tokens |
+| POST | `/api/auth/refresh/` | Refresh access token |
+| GET | `/api/auth/me/` | Current user info |
+| POST | `/api/auth/logout/` | Blacklist refresh token |
 
 ### Employees
-- `GET /api/employees/` - List employees
-- `POST /api/employees/` - Create employee
-- `GET /api/employees/{id}/` - Get employee details
-- `PATCH /api/employees/{id}/` - Update employee
-- `DELETE /api/employees/{id}/` - Delete employee
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/employees/` | List employees (admin) |
+| POST | `/api/employees/` | Create employee (admin) |
+| GET | `/api/employees/{id}/` | Employee detail |
+| PATCH | `/api/employees/{id}/` | Update employee |
+| DELETE | `/api/employees/{id}/` | Deactivate employee (admin) |
+| PATCH | `/api/employees/profile/` | Update own profile |
 
 ### Face Recognition
-- `POST /api/face/register/` - Register employee face
-- `POST /api/face/recognize/` - Recognize face and mark attendance
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/face/register/` | Enroll own face |
+| POST | `/api/face/recognize/` | Recognise face + mark attendance |
+| GET | `/api/face/enrollment-stats/` | Own enrollment statistics |
+| GET | `/api/face/my-embeddings/` | List own embeddings |
+| DELETE | `/api/face/embeddings/{id}/` | Delete own embedding |
 
 ### Attendance
-- `GET /api/attendance/` - List attendance records
-- `GET /api/attendance/{id}/` - Get attendance details
-- `POST /api/attendance/check-in/` - Manual check-in
-- `POST /api/attendance/check-out/` - Manual check-out
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/attendance/` | List records (scoped by role) |
+| GET | `/api/attendance/{id}/` | Single record |
+| POST | `/api/attendance/check-in/` | Face-based check-in |
+| POST | `/api/attendance/check-out/` | Face-based check-out |
+| GET | `/api/attendance/today/` | Today's status |
+| GET | `/api/attendance/my-stats/monthly/` | Monthly stats |
+| GET | `/api/attendance/my-stats/weekly/` | Weekly stats |
+| GET | `/api/attendance/my-stats/summary/` | Dashboard summary |
+| GET | `/api/attendance/admin/list/` | Paginated admin list |
+| GET | `/api/attendance/admin/stats/daily/` | Company daily stats |
+| GET | `/api/attendance/admin/stats/monthly/` | Company monthly stats |
+| GET | `/api/attendance/admin/stats/recent/` | Last N days trend |
+| GET | `/api/attendance/export/my/` | Employee CSV export |
+| GET | `/api/attendance/export/admin/` | Admin CSV export |
 
 ### Dashboard
-- `GET /api/dashboard/admin/` - Admin dashboard statistics
-- `GET /api/dashboard/employee/` - Employee dashboard statistics
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/dashboard/admin/` | Admin dashboard stats |
+| GET | `/api/dashboard/employee/` | Employee dashboard stats |
 
-## Face Recognition System
-
-### Architecture
-
-This system uses **pretrained models** from InsightFace, specifically:
-
-1. **Face Detection**: InsightFace SCRFD detector
-2. **Face Recognition**: InsightFace buffalo_l model pack
-
-### Important Notes
-
-- **No custom training**: The system uses pretrained deep learning models
-- **Embeddings**: Numerical representations of faces for comparison
-- **Threshold-based matching**: Configurable similarity threshold for recognition
-- **Security**: Biometric embeddings are protected and not exposed via API
-
-### ML Pipeline
-
-```
-Image → Face Detection → Face Alignment → Embedding Generation → 
-→ Similarity Comparison → Identity Match → Attendance Recording
-```
-
-### Configuration
-
-Face recognition settings in `.env`:
-```env
-FACE_RECOGNITION_THRESHOLD=0.4    # Lower = stricter matching
-FACE_DETECTION_CONFIDENCE=0.5     # Face detection confidence
-```
-
-## User Roles
-
-- **ADMIN**: Full system access, employee management, reports
-- **EMPLOYEE**: Personal dashboard, face registration, attendance
+---
 
 ## Security
 
-- JWT-based authentication
-- Role-based access control
-- Password hashing (Django default)
-- Biometric data protection
-- CORS configuration
-- Environment-based secrets
+Rate limits (Phase 20):
+- Anonymous: 30 requests/minute
+- Authenticated: 300 requests/minute
+- Auth endpoints (login/register): 10 requests/minute
+- Face endpoints (register/recognize): 20 requests/minute
 
-## Development Workflow
+See `SECURITY.md` for the full security review.
 
-1. Activate virtual environment
-2. Make code changes
-3. Create/update migrations: `python manage.py makemigrations`
-4. Apply migrations: `python manage.py migrate`
-5. Run server: `python manage.py runserver`
-6. Test API endpoints
+---
+
+## ML Documentation
+
+See `ML_ARCHITECTURE.md` for:
+- Complete recognition pipeline diagram
+- Model specifications and input/output shapes
+- Threshold documentation and guidance
+- Embedding cache design
+- Biometric data handling rules
+
+---
+
+## Evaluation
+
+```bash
+# Run ML evaluation (Phase 21)
+python ml/evaluation/evaluate.py
+
+# Custom threshold
+python ml/evaluation/evaluate.py --threshold 0.65
+
+# Save JSON report
+python ml/evaluation/evaluate.py --output ml/evaluation/evaluation_report.json
+```
+
+Results summary (synthetic pairs): TAR 83.5%, FAR 0.0%, EER 0.38%, AUC 1.0, F1 0.91.
+
+See `ml/evaluation/EVALUATION_REPORT.md` for full analysis and production guidance.
+
+---
 
 ## Testing
 
-Run Django tests:
 ```bash
-python manage.py test
+# Django test suite (Phase 26)
+python manage.py test apps
+
+# Individual test scripts
+python test_auth.py
+python test_employees.py
+python test_attendance.py
+python test_face_enrollment.py
+python test_face_matching.py
 ```
+
+---
+
+## Production Checklist
+
+- [ ] `DEBUG=False` in `.env`
+- [ ] Strong `SECRET_KEY` (50+ random characters)
+- [ ] `ALLOWED_HOSTS` set to your domain
+- [ ] MongoDB Atlas: production cluster, IP whitelist, auth enabled
+- [ ] HTTPS configured (nginx/caddy with TLS)
+- [ ] `python manage.py check --deploy` passes
+- [ ] Run with gunicorn: `gunicorn config.wsgi:application`
+- [ ] Static files: `python manage.py collectstatic`
+- [ ] Review `SECURITY.md` biometric data obligations
+
+---
 
 ## Phase Completion
 
-✅ Phase 1: Project setup complete
-- Django project created
-- MongoDB configured with django-mongodb-backend
-- Apps structure created (accounts, employees, attendance, recognition, dashboard)
-- ML directory structure ready
-- Environment variables configured
-- Requirements.txt with all dependencies
-
-## Next Steps
-
-- Phase 2: Frontend Design System
-- Phase 3: Authentication Backend (JWT, User model, Login/Register)
-- Phase 9: InsightFace ML Environment Setup
+| Phase | Description | Status |
+|---|---|---|
+| 1 | Project setup | ✅ |
+| 2 | Frontend design system | ✅ |
+| 3 | Authentication backend | ✅ |
+| 4 | Authentication frontend | ✅ |
+| 5 | Employee dashboard | ✅ |
+| 6 | Employee profile | ✅ |
+| 7 | Employee management backend | ✅ |
+| 8 | Employee management frontend | ✅ |
+| 9 | InsightFace ML environment | ✅ |
+| 10 | Face enrollment | ✅ |
+| 11 | Face matching engine | ✅ |
+| 12 | Attendance recognition | ✅ |
+| 13 | Attendance backend | ✅ |
+| 14 | Employee attendance frontend | ✅ |
+| 15 | Admin dashboard | ✅ |
+| 16 | Admin recognition | ✅ |
+| 17 | Admin attendance management | ✅ |
+| 18 | Dashboard API integration | ✅ |
+| 19 | Reports / CSV export | ✅ |
+| 20 | Security review | ✅ |
+| 21 | ML evaluation | ✅ |
+| 22 | ML model documentation | ✅ |
+| 23 | Accessibility | ✅ |
+| 24 | Responsive design | ✅ |
+| 25 | Performance | ✅ |
+| 26 | Testing | ✅ |
+| 27 | Final UI polish | ✅ |
+| 28 | Production readiness | ✅ |

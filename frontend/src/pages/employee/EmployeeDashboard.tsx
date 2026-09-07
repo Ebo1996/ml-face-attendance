@@ -23,6 +23,11 @@ function fmtTime(iso: string | null) {
 const STATUS_VARIANTS: Record<string, 'success' | 'warning' | 'default' | 'danger'> = {
   PRESENT: 'success', LATE: 'warning', HALF_DAY: 'default', ABSENT: 'danger', ON_LEAVE: 'default',
 };
+
+// StatsCard allows 'primary' as a variant; use for today's card
+const TODAY_STAT_VARIANT: Record<string, 'success' | 'warning' | 'default' | 'danger' | 'primary'> = {
+  PRESENT: 'success', LATE: 'warning', HALF_DAY: 'default', ABSENT: 'danger', ON_LEAVE: 'default',
+};
 const STATUS_LABELS: Record<string, string> = {
   PRESENT: 'Present', LATE: 'Late', HALF_DAY: 'Half Day', ABSENT: 'Absent', ON_LEAVE: 'On Leave',
 };
@@ -151,7 +156,7 @@ export const EmployeeDashboard: React.FC = () => {
     ? STATUS_LABELS[todayStatus.attendance.status]
     : todayStatus?.is_checked_in ? 'Checked In' : 'Not Checked In';
   const todayVariant = todayStatus?.attendance?.status
-    ? (STATUS_VARIANTS[todayStatus.attendance.status] ?? 'default')
+    ? (TODAY_STAT_VARIANT[todayStatus.attendance.status] ?? 'default')
     : todayStatus?.is_checked_in ? 'success' : 'default';
   const todaySubtitle = todayStatus?.attendance?.check_in_time
     ? `Checked in at ${fmtTime(todayStatus.attendance.check_in_time)}`
