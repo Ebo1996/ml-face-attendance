@@ -102,7 +102,40 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-InsightFace downloads the buffalo_l model pack (~300 MB) on first use. It is saved to `~/.insightface/models/buffalo_l/`.
+### 2a. InsightFace model download (first run only)
+
+The buffalo_l model pack is **not bundled in this repository**. InsightFace
+downloads it automatically the first time the server handles a face request.
+
+| Detail | Value |
+|--------|-------|
+| Download size | ~300 MB |
+| Saved to | `~/.insightface/models/buffalo_l/` |
+| Files | `det_10g.onnx`, `w600k_r50.onnx`, `genderage.onnx`, `1k3d68.onnx`, `2d106det.onnx` |
+| Internet required | Yes (first run only — subsequent starts are offline) |
+| Triggered by | First call to any `/api/face/` endpoint |
+
+**To pre-download before starting the server** (recommended for CI or slow
+connections):
+
+```python
+# Run this once inside the activated virtual environment:
+python - <<'EOF'
+import insightface
+app = insightface.app.FaceAnalysis(name='buffalo_l')
+app.prepare(ctx_id=-1)   # -1 = CPU; 0 = first GPU
+print("buffalo_l downloaded and ready.")
+EOF
+```
+
+If the auto-download fails (firewall, air-gapped environment) you can copy the
+five `.onnx` files manually into `~/.insightface/models/buffalo_l/`. The
+official model pack is published at
+https://github.com/deepinsight/insightface/releases.
+
+> **GPU / CUDA:** Install `onnxruntime-gpu` instead of `onnxruntime` and pass
+> `ctx_id=0` to `app.prepare()`. CPU inference is fully supported and is the
+> default configuration.
 
 ### 3. Configure environment
 
@@ -122,7 +155,10 @@ MONGODB_DATABASE=face_attendance
 ### 4. Run migrations
 
 ```bash
-python manage.py makemigrations
+# Creates collections / indexes for all apps with models:
+#   accounts (User), employees (EmployeeProfile),
+#   attendance (AttendanceRecord), ml_service (FaceEmbedding, FaceRegistrationSession)
+#   plus Django's built-in auth tables (groups, permissions, token blacklist)
 python manage.py migrate
 ```
 

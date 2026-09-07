@@ -51,7 +51,7 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
   }, [showDropdown]);
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10" role="banner">
+    <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/80 sticky top-0 z-10 shadow-sm" role="banner">
       <div className="px-4 md:px-6 py-3">
         <div className="flex justify-between items-center gap-4">
 

@@ -17,6 +17,8 @@ urlpatterns = [
     path('check-out/',  views.check_out_api,    name='check-out'),
     path('today/',      views.today_status_api, name='today-status'),
     path('my-history/', views.my_history_api,   name='my-history'),
+    # Alias: /api/attendance/history/ → same view (backwards compat + spec)
+    path('history/',    views.my_history_api,   name='history-alias'),
 
     # ── Employee: personal stats (Phase 13) ──────────────────────────
     path('my-stats/monthly/', views.my_monthly_stats_api, name='my-monthly-stats'),

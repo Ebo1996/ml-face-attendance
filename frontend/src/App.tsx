@@ -131,10 +131,11 @@ function App() {
               } />
 
               {/* ── Legacy / convenience redirects ────────────────── */}
-              <Route path="/dashboard"  element={<Navigate to="/employee/dashboard" replace />} />
-              <Route path="/profile"    element={<Navigate to="/employee/profile" replace />} />
-              <Route path="/attendance" element={<Navigate to="/employee/attendance" replace />} />
-              <Route path="/employees"  element={<Navigate to="/admin/employees" replace />} />
+              <Route path="/dashboard"          element={<Navigate to="/employee/dashboard"   replace />} />
+              <Route path="/profile"            element={<Navigate to="/employee/profile"     replace />} />
+              <Route path="/attendance"         element={<Navigate to="/employee/attendance"  replace />} />
+              <Route path="/attendance/history" element={<Navigate to="/employee/attendance"  replace />} />
+              <Route path="/employees"          element={<Navigate to="/admin/employees"      replace />} />
 
               {/* ── Default ───────────────────────────────────────── */}
               <Route path="/" element={<Navigate to="/employee/dashboard" replace />} />

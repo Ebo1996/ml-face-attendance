@@ -1,0 +1,1 @@
+# MongoDB-compatible contenttypes migrations

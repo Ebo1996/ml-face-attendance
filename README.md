@@ -16,7 +16,7 @@ A full-stack attendance management system that uses real-time face recognition t
 | Face detection | InsightFace SCRFD (`det_10g.onnx`) |
 | Face recognition | InsightFace buffalo_l ArcFace ResNet-50 (`w600k_r50.onnx`) |
 | ML inference | ONNX Runtime (CPU / CUDA) |
-| Testing | Django TestCase (58 tests) · Vitest (30 tests) |
+| Testing | Django TestCase (58 tests) · Vitest (85 tests) |
 
 ---
 
@@ -42,6 +42,7 @@ A full-stack attendance management system that uses real-time face recognition t
 - Python 3.10+
 - Node.js 18+
 - MongoDB Atlas cluster (free tier works)
+- Internet access on first run (InsightFace downloads the buffalo_l model pack, ~300 MB, into `~/.insightface/models/buffalo_l/`)
 
 ### 1. Clone and configure
 
@@ -67,6 +68,16 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Pre-download InsightFace buffalo_l model (~300 MB, first run only)
+# The server downloads it automatically on first face request, but
+# running this now avoids a timeout during your first demo.
+python - <<'EOF'
+import insightface
+app = insightface.app.FaceAnalysis(name='buffalo_l')
+app.prepare(ctx_id=-1)
+print("buffalo_l ready.")
+EOF
 
 # Configure environment
 cp .env.example .env
@@ -118,8 +129,10 @@ The UI is available at `http://localhost:3000`.
 | `CORS_ALLOWED_ORIGINS` | ✅ | Frontend origins (e.g. `http://localhost:3000`) |
 | `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | — | Default: `60` |
 | `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | — | Default: `7` |
-| `FACE_VERIFICATION_THRESHOLD` | — | Default: `0.60` (higher = stricter) |
-| `FACE_IDENTIFICATION_THRESHOLD` | — | Default: `0.55` |
+| `FACE_VERIFICATION_THRESHOLD` | — | Default: `0.60` — 1:1 verify threshold (higher = stricter) |
+| `FACE_IDENTIFICATION_THRESHOLD` | — | Default: `0.55` — 1:N identify threshold |
+| `FACE_RECOGNITION_THRESHOLD` | — | Default: `0.4` — enrollment duplicate-check threshold |
+| `FACE_DETECTION_CONFIDENCE` | — | Default: `0.5` — minimum SCRFD detection score for enrollment |
 
 ### Frontend (`frontend/.env`)
 
@@ -218,6 +231,9 @@ npm test
 Covers:
 - `utils/cn` — className merging utility (11 tests)
 - `utils/imageOptimization` — compression, sizing, validation utilities (19 tests)
+- `services/auth` — register, login, logout, refresh, sync helpers, role distinctions (19 tests)
+- `services/face` — image validation, compression, enrollment, recognition, identification, biometric security invariants (22 tests)
+- `services/attendance` — today status, history, monthly stats, admin list, employee history (14 tests)
 
 ---
 

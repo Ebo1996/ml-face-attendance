@@ -38,7 +38,7 @@ export const QuickActions: React.FC = () => {
         </svg>
       ),
       variant: 'outline',
-      onClick: () => navigate('/attendance/history'),
+      onClick: () => navigate('/employee/attendance'),
     },
     {
       label: 'Update Profile',

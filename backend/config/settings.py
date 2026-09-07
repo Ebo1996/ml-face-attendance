@@ -23,9 +23,10 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').spl
 
 # Application definition
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
+    # MongoDB-compatible built-in apps (use custom AppConfig classes)
+    'config.apps.MongoAdminConfig',
+    'config.apps.MongoAuthConfig',
+    'config.apps.MongoContentTypesConfig',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -33,8 +34,9 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
+    # Note: token_blacklist removed - MongoDB backend has compatibility issues
     'corsheaders',
+    'django_mongodb_backend',
     
     # Local apps
     'apps.accounts',
@@ -44,6 +46,14 @@ INSTALLED_APPS = [
     'apps.recognition',
     'apps.dashboard',
 ]
+
+# MongoDB migration modules for Django built-in apps
+# django-mongodb-backend requires custom migrations with ObjectIdAutoField
+MIGRATION_MODULES = {
+    'admin': 'mongo_migrations.admin',
+    'auth': 'mongo_migrations.auth',
+    'contenttypes': 'mongo_migrations.contenttypes',
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -82,9 +92,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django_mongodb_backend',
         'NAME': os.getenv('MONGODB_DATABASE', 'face_attendance'),
-        'CLIENT': {
-            'host': os.getenv('MONGODB_URI'),
-        },
+        'HOST': os.getenv('MONGODB_URI'),  # Full Atlas connection string
     }
 }
 
@@ -122,7 +130,10 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# django-mongodb-backend requires ObjectIdAutoField — BigAutoField is not
+# supported by MongoDB. This covers Django built-ins (auth, admin,
+# contenttypes) and third-party apps (simplejwt token_blacklist, etc.)
+DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -145,7 +156,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', 60))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME_DAYS', 7))),
     'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': True,
+    # 'BLACKLIST_AFTER_ROTATION': True,  # Disabled: token_blacklist incompatible with MongoDB
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'VERIFYING_KEY': None,

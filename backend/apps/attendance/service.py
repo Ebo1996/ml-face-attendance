@@ -247,44 +247,6 @@ class AttendanceService:
 
         return True, _serialize_record(record), None
 
-
-# ── Helper ────────────────────────────────────────────────────────────
-
-def _serialize_record(record) -> Dict[str, Any]:
-    """Convert an AttendanceRecord to a plain dict."""
-    return {
-        'id': record.id,
-        'user_id': str(record.user_id),
-        'date': str(record.date),
-        'status': record.status,
-        'check_in_time': record.check_in_time.isoformat() if record.check_in_time else None,
-        'check_out_time': record.check_out_time.isoformat() if record.check_out_time else None,
-        'check_in_similarity': record.check_in_similarity,
-        'check_in_confidence': record.check_in_confidence,
-        'check_out_similarity': record.check_out_similarity,
-        'check_out_confidence': record.check_out_confidence,
-        'work_hours': record.work_hours,
-        'check_in_method': record.check_in_method,
-        'check_out_method': record.check_out_method,
-        'admin_override': record.admin_override,
-        'notes': record.notes,
-        'created_at': record.created_at.isoformat(),
-        'updated_at': record.updated_at.isoformat(),
-    }
-
-
-# ── Singleton ─────────────────────────────────────────────────────────
-
-_service: Optional[AttendanceService] = None
-
-
-def get_attendance_service() -> AttendanceService:
-    global _service
-    if _service is None:
-        _service = AttendanceService()
-    return _service
-
-
     # ── Face-recognition-triggered helpers ───────────────────────────
     # Called by the recognition API after identity has already been
     # confirmed by the ML matching engine.
@@ -292,7 +254,6 @@ def get_attendance_service() -> AttendanceService:
     def check_in_without_face(self, user) -> Dict[str, Any]:
         """Mark check-in for *user* (face already verified by caller)."""
         from .models import AttendanceRecord
-        from datetime import timedelta
 
         today = timezone.localdate()
         now   = timezone.now()
@@ -358,3 +319,40 @@ def get_attendance_service() -> AttendanceService:
             'message': f"Check-out successful. Worked {record.work_hours:.1f}h." if record.work_hours else "Check-out successful.",
             'attendance': _serialize_record(record),
         }
+
+
+# ── Helper ────────────────────────────────────────────────────────────
+
+def _serialize_record(record) -> Dict[str, Any]:
+    """Convert an AttendanceRecord to a plain dict."""
+    return {
+        'id': record.id,
+        'user_id': str(record.user_id),
+        'date': str(record.date),
+        'status': record.status,
+        'check_in_time': record.check_in_time.isoformat() if record.check_in_time else None,
+        'check_out_time': record.check_out_time.isoformat() if record.check_out_time else None,
+        'check_in_similarity': record.check_in_similarity,
+        'check_in_confidence': record.check_in_confidence,
+        'check_out_similarity': record.check_out_similarity,
+        'check_out_confidence': record.check_out_confidence,
+        'work_hours': record.work_hours,
+        'check_in_method': record.check_in_method,
+        'check_out_method': record.check_out_method,
+        'admin_override': record.admin_override,
+        'notes': record.notes,
+        'created_at': record.created_at.isoformat(),
+        'updated_at': record.updated_at.isoformat(),
+    }
+
+
+# ── Singleton ─────────────────────────────────────────────────────────
+
+_service: Optional[AttendanceService] = None
+
+
+def get_attendance_service() -> AttendanceService:
+    global _service
+    if _service is None:
+        _service = AttendanceService()
+    return _service
