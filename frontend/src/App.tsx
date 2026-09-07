@@ -47,10 +47,34 @@ const PageLoader = () => (
   </div>
 );
 
-// ── Query client ──────────────────────────────────────────────────────
+// ── Query client (Phase 25: optimized settings) ──────────────────────
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
+  defaultOptions: {
+    queries: {
+      // Refetch behavior
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      
+      // Retry configuration
+      retry: 1,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      
+      // Cache configuration
+      staleTime: 30 * 1000, // 30 seconds - data considered fresh
+      gcTime: 5 * 60 * 1000, // 5 minutes - cache garbage collection (formerly cacheTime)
+      
+      // Performance
+      networkMode: 'online', // Only run when online
+    },
+    mutations: {
+      // Retry failed mutations once
+      retry: 1,
+      retryDelay: 1000,
+      networkMode: 'online',
+    },
+  },
 });
 
 // ── App ───────────────────────────────────────────────────────────────

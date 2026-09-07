@@ -43,8 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        // Clear invalid session
+        // Auth init failed — clear invalid session silently
         await authService.logout();
         setUser(null);
       } finally {
@@ -77,8 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await authService.logout();
       setUser(null);
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
       // Always clear user state even if API call fails
       setUser(null);
     }
@@ -89,7 +87,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
     } catch (error) {
-      console.error('Refresh user error:', error);
       throw error;
     }
   };

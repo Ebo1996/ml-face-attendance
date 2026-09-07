@@ -111,25 +111,51 @@ const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(
       setStatus('idle');
     }, []);
 
-    // ── Capture frame ─────────────────────────────────────────────────
+    // ── Capture frame (with compression) ─────────────────────────────
     const capture = useCallback((): string | null => {
       if (!videoRef.current || !canvasRef.current || status !== 'active') return null;
 
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      canvas.width = video.videoWidth || width;
-      canvas.height = video.videoHeight || height;
+      
+      // Get actual video dimensions
+      const videoWidth = video.videoWidth || width;
+      const videoHeight = video.videoHeight || height;
+      
+      // Target dimensions for compression (max 800px wide for face recognition)
+      const maxWidth = 800;
+      const maxHeight = 600;
+      let targetWidth = videoWidth;
+      let targetHeight = videoHeight;
+      
+      // Calculate scaling while maintaining aspect ratio
+      if (videoWidth > maxWidth || videoHeight > maxHeight) {
+        const widthRatio = maxWidth / videoWidth;
+        const heightRatio = maxHeight / videoHeight;
+        const scale = Math.min(widthRatio, heightRatio);
+        targetWidth = Math.floor(videoWidth * scale);
+        targetHeight = Math.floor(videoHeight * scale);
+      }
+      
+      // Set canvas to target dimensions
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
 
-      // Mirror the image (selfie mode)
+      // Enable image smoothing for better quality when downscaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Mirror the image (selfie mode) and draw scaled
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      // Compress to JPEG with quality 0.85 (balance between quality and size)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       onCapture?.(dataUrl);
       return dataUrl;
     }, [status, width, height, onCapture]);

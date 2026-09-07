@@ -10,24 +10,15 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Spinner } from '../../components/common/Spinner';
+import {
+  identifyFace,
+  compressImageForUpload,
+  validateImageDataUrl,
+} from '../../services/face';
+import type { IdentifyFaceResponse, IdentifyCandidate } from '../../types';
 import { apiClient } from '../../services/api';
 
 // ── Types ─────────────────────────────────────────────────────────────
-
-interface MatchCandidate {
-  user_id: string;
-  similarity: number;
-  confidence_level: string;
-}
-
-interface IdentifyResult {
-  success: boolean;
-  identified: boolean;
-  top_match: MatchCandidate | null;
-  candidates: MatchCandidate[];
-  error?: string;
-  processing_time_ms: number;
-}
 
 interface EmployeeInfo {
   id: string;
@@ -70,7 +61,7 @@ export const AdminRecognitionPage: React.FC = () => {
   const [preview, setPreview]           = useState<string | null>(null);
   const [imageData, setImageData]       = useState<string | null>(null);
   const [identifying, setIdentifying]   = useState(false);
-  const [result, setResult]             = useState<IdentifyResult | null>(null);
+  const [result, setResult]             = useState<IdentifyFaceResponse | null>(null);
   const [employees, setEmployees]       = useState<Record<string, EmployeeInfo>>({});
   const [selectedId, setSelectedId]     = useState<string | null>(null);
   const [markStatus, setMarkStatus]     = useState<'PRESENT' | 'LATE' | 'HALF_DAY'>('PRESENT');
@@ -113,17 +104,19 @@ export const AdminRecognitionPage: React.FC = () => {
     setResult(null);
     setMarkResult(null);
     try {
-      const res = await apiClient.post<IdentifyResult>('/face/identify/', {
-        image_data: imageData,
-        top_k: 5,
-      });
+      // Validate then compress before upload
+      const validationError = validateImageDataUrl(imageData);
+      if (validationError) { setError(validationError); return; }
+      const compressed = await compressImageForUpload(imageData);
+
+      const res = await identifyFace({ image_data: compressed, top_k: 5 });
       setResult(res);
 
       // Fetch employee info for each candidate
       if (res.candidates?.length) {
         const infos: Record<string, EmployeeInfo> = {};
         await Promise.allSettled(
-          res.candidates.map(async (c) => {
+          res.candidates.map(async (c: IdentifyCandidate) => {
             try {
               const emp = await apiClient.get<EmployeeInfo>(`/employees/${c.user_id}/`);
               infos[c.user_id] = emp;

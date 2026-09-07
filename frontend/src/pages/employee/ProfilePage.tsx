@@ -22,11 +22,9 @@ export const ProfilePage: React.FC = () => {
     return null;
   }
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (_data: any) => {
     try {
-      // TODO: API call to update profile
-      
-      // Simulate API call
+      // Simulate API call until profile update endpoint is wired
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Refresh user data

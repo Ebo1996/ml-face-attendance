@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../common/Card';
 
 interface QuickAction {
@@ -14,6 +15,8 @@ interface QuickAction {
 }
 
 export const QuickActions: React.FC = () => {
+  const navigate = useNavigate();
+
   const actions: QuickAction[] = [
     {
       label: 'Mark Attendance',
@@ -24,7 +27,7 @@ export const QuickActions: React.FC = () => {
         </svg>
       ),
       variant: 'default',
-      onClick: () => console.log('Mark Attendance'),
+      onClick: () => navigate('/attendance'),
     },
     {
       label: 'View Reports',
@@ -35,7 +38,7 @@ export const QuickActions: React.FC = () => {
         </svg>
       ),
       variant: 'outline',
-      onClick: () => console.log('View Reports'),
+      onClick: () => navigate('/attendance/history'),
     },
     {
       label: 'Update Profile',
@@ -46,7 +49,7 @@ export const QuickActions: React.FC = () => {
         </svg>
       ),
       variant: 'outline',
-      onClick: () => console.log('Update Profile'),
+      onClick: () => navigate('/profile'),
     },
   ];
 

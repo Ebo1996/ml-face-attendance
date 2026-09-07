@@ -1,8 +1,14 @@
 /**
- * Centralised TypeScript types — canonical source of truth for the whole app.
+ * src/types/index.ts
+ * ==================
+ * Canonical TypeScript types — single source of truth for the whole app.
  *
- * All service files and components should import from here.
- * No type should be defined twice.
+ * Rules
+ * -----
+ *   1. Every interface/type used by more than one file lives here.
+ *   2. Service files import from here and re-export aliases for
+ *      backwards-compatibility only — they must not re-declare shapes.
+ *   3. Component-local types (props interfaces) stay in their own file.
  */
 
 // ── Enumerations ──────────────────────────────────────────────────────
@@ -45,6 +51,7 @@ export interface AuthUser {
   email:       string;
   role:        UserRole;
   is_active:   boolean;
+  date_joined?: string;
   first_name?: string;
   last_name?:  string;
 }
@@ -391,3 +398,76 @@ export interface AttendanceChartPoint {
   late:     number;
   hours?:   number;
 }
+
+// ── Auth request / response (used by services/auth.ts + AuthContext) ─
+
+export interface LoginRequest {
+  email:    string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email:            string;
+  password:         string;
+  password_confirm: string;
+  role?:            UserRole;
+}
+
+export interface LoginResponse {
+  user:    AuthUser;
+  tokens:  AuthTokens;
+  message: string;
+}
+
+export interface RegisterResponse {
+  user:    AuthUser;
+  tokens:  AuthTokens;
+  message: string;
+}
+
+export interface ChangePasswordRequest {
+  old_password:         string;
+  new_password:         string;
+  new_password_confirm: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+}
+
+// ── Paginated attendance (used by admin list + reports) ───────────────
+
+export interface PaginatedAttendance {
+  total:       number;
+  page:        number;
+  page_size:   number;
+  total_pages: number;
+  records:     AttendanceRecord[];
+}
+
+// ── Face identification (admin 1:N, no attendance recorded) ───────────
+
+export interface IdentifyCandidate {
+  user_id:          string;
+  similarity:       number;
+  confidence_level: ConfidenceLevel;
+}
+
+export interface IdentifyFaceRequest {
+  image_data: string;
+  top_k?:     number;
+}
+
+export interface IdentifyFaceResponse {
+  success:            boolean;
+  identified:         boolean;
+  top_match:          IdentifyCandidate | null;
+  candidates:         IdentifyCandidate[];
+  error?:             string;
+  processing_time_ms: number;
+}
+
+// ── Convenience re-exports so consumers can use a single import ───────
+
+/** @deprecated Import AuthUser directly — User is an alias for backwards compat. */
+export type User = AuthUser;

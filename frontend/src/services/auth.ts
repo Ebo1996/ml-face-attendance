@@ -1,186 +1,120 @@
 /**
- * Authentication API Service
+ * services/auth.ts
+ * ================
+ * Authentication API service — login, register, logout, token refresh.
+ *
+ * All types are imported from types/index.ts (single source of truth).
+ * Named re-exports below keep every existing consumer import working
+ * without modification.
  */
 
 import { apiClient } from './api';
+import type {
+  AuthUser,
+  AuthTokens,
+  LoginRequest,
+  RegisterRequest,
+  LoginResponse,
+  RegisterResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
+  UserRole,
+} from '../types';
 
-export type UserRole = 'ADMIN' | 'EMPLOYEE';
+// ── Backwards-compat re-exports ───────────────────────────────────────
+// Components that import `User`, `UserRole`, `LoginRequest`, etc. from
+// this file continue to work without any change.
 
-export interface User {
-  id: string;
-  email: string;
-  role: UserRole;
-  is_active: boolean;
-  date_joined: string;
-}
+export type { UserRole };
+export type { AuthTokens };
+export type { LoginRequest,  RegisterRequest };
+export type { LoginResponse, RegisterResponse };
+export type { ChangePasswordRequest, ChangePasswordResponse };
 
-export interface AuthTokens {
-  access: string;
-  refresh: string;
-}
+/** @deprecated Use AuthUser from types/. Kept for existing imports. */
+export type User = AuthUser;
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  user: User;
-  tokens: AuthTokens;
-  message: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  password_confirm: string;
-  role?: UserRole;
-}
-
-export interface RegisterResponse {
-  user: User;
-  tokens: AuthTokens;
-  message: string;
-}
-
-export interface ChangePasswordRequest {
-  old_password: string;
-  new_password: string;
-  new_password_confirm: string;
-}
-
-export interface ChangePasswordResponse {
-  message: string;
-}
+// ── Auth service ──────────────────────────────────────────────────────
 
 export const authService = {
   /**
-   * Register a new user
+   * Register a new user account.
+   * Stores access + refresh tokens in localStorage.
+   * Biometric data is never touched here.
    */
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     const response = await apiClient.post<RegisterResponse>('/auth/register/', data);
-    
-    // Store tokens
     if (response.tokens) {
-      localStorage.setItem('access_token', response.tokens.access);
+      localStorage.setItem('access_token',  response.tokens.access);
       localStorage.setItem('refresh_token', response.tokens.refresh);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('user',          JSON.stringify(response.user));
     }
-    
     return response;
   },
 
-  /**
-   * Login user
-   */
+  /** Authenticate with email + password. Returns JWT tokens. */
   async login(data: LoginRequest): Promise<LoginResponse> {
     const response = await apiClient.post<LoginResponse>('/auth/login/', data);
-    
-    // Store tokens and user data
     if (response.tokens) {
-      localStorage.setItem('access_token', response.tokens.access);
+      localStorage.setItem('access_token',  response.tokens.access);
       localStorage.setItem('refresh_token', response.tokens.refresh);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('user',          JSON.stringify(response.user));
     }
-    
     return response;
   },
 
-  /**
-   * Logout user
-   */
+  /** Blacklist refresh token server-side, then clear localStorage. */
   async logout(): Promise<void> {
     const refreshToken = localStorage.getItem('refresh_token');
-    
     try {
       if (refreshToken) {
         await apiClient.post('/auth/logout/', { refresh: refreshToken });
       }
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
+      // Logout API call failed — clear tokens anyway
     } finally {
-      // Clear local storage
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
     }
   },
 
-  /**
-   * Get current user
-   */
-  async getCurrentUser(): Promise<User> {
-    const response = await apiClient.get<User>('/auth/me/');
-    
-    // Update stored user data
+  /** Fetch the authenticated user's profile from /api/auth/me/. */
+  async getCurrentUser(): Promise<AuthUser> {
+    const response = await apiClient.get<AuthUser>('/auth/me/');
     localStorage.setItem('user', JSON.stringify(response));
-    
     return response;
   },
 
-  /**
-   * Refresh access token
-   */
+  /** Exchange refresh token for a new access token. */
   async refreshToken(): Promise<AuthTokens> {
     const refreshToken = localStorage.getItem('refresh_token');
-    
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
+    if (!refreshToken) throw new Error('No refresh token available');
 
     const response = await apiClient.post<{ access: string }>('/auth/refresh/', {
       refresh: refreshToken,
     });
-    
-    // Update access token
     localStorage.setItem('access_token', response.access);
-    
-    return {
-      access: response.access,
-      refresh: refreshToken,
-    };
+    return { access: response.access, refresh: refreshToken };
   },
 
-  /**
-   * Change user password
-   */
+  /** Change authenticated user's password. */
   async changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
-    return await apiClient.post<ChangePasswordResponse>('/auth/change-password/', data);
+    return apiClient.post<ChangePasswordResponse>('/auth/change-password/', data);
   },
 
-  /**
-   * Check if user is authenticated
-   */
+  // ── Sync helpers (no network) ───────────────────────────────────────
+
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('access_token');
-    return !!token;
+    return !!localStorage.getItem('access_token');
   },
 
-  /**
-   * Get stored user data
-   */
-  getStoredUser(): User | null {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
-    
-    try {
-      return JSON.parse(userStr);
-    } catch {
-      return null;
-    }
+  getStoredUser(): AuthUser | null {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    try { return JSON.parse(raw) as AuthUser; } catch { return null; }
   },
 
-  /**
-   * Get access token
-   */
-  getAccessToken(): string | null {
-    return localStorage.getItem('access_token');
-  },
-
-  /**
-   * Get refresh token
-   */
-  getRefreshToken(): string | null {
-    return localStorage.getItem('refresh_token');
-  },
+  getAccessToken():  string | null { return localStorage.getItem('access_token');  },
+  getRefreshToken(): string | null { return localStorage.getItem('refresh_token'); },
 };

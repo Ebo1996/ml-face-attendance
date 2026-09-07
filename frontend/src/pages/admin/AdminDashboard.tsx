@@ -207,7 +207,7 @@ export const AdminDashboard: React.FC = () => {
         setDailyStat(daily);
         setMonthlyStat(monthly as CompanyMonthlyStat);
         setRecentDays(recent as CompanyDailyStat[]);
-        setTodayOverview(today as TodayOverview);
+        setTodayOverview(today as unknown as TodayOverview);
       } catch {
         setError('Failed to load dashboard data. Please try again.');
       } finally {

@@ -15,25 +15,13 @@ import {
   CameraCapture,
   CameraCaptureHandle,
 } from '../../components/camera/CameraCapture';
-import { apiClient } from '../../services/api';
-
-// ── Types ─────────────────────────────────────────────────────────────
-
-interface EnrollmentInfo {
-  total_embeddings: number;
-  active_embeddings: number;
-  has_primary: boolean;
-  average_quality?: number;
-}
-
-interface RegisterResult {
-  success: boolean;
-  message?: string;
-  error?: string;
-  embedding_id?: string;
-  quality_score?: number;
-  is_primary?: boolean;
-}
+import {
+  registerFace,
+  getEnrollmentStats,
+  compressImageForUpload,
+  validateImageDataUrl,
+} from '../../services/face';
+import type { EnrollmentStats, FaceRegisterResponse } from '../../types';
 
 // ── Step indicator ────────────────────────────────────────────────────
 
@@ -79,15 +67,15 @@ export const FaceRegistrationPage: React.FC = () => {
 
   const [step, setStep]               = useState(0);   // 0=position 1=capture 2=register 3=done
   const [preview, setPreview]         = useState<string | null>(null);
-  const [enrollInfo, setEnrollInfo]   = useState<EnrollmentInfo | null>(null);
+  const [enrollInfo, setEnrollInfo]   = useState<EnrollmentStats | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [submitting, setSubmitting]   = useState(false);
-  const [result, setResult]           = useState<RegisterResult | null>(null);
+  const [result, setResult]           = useState<FaceRegisterResponse | null>(null);
   const [error, setError]             = useState<string | null>(null);
 
   // Load current enrollment stats
   useEffect(() => {
-    apiClient.get<EnrollmentInfo>('/face/enrollment-stats/')
+    getEnrollmentStats()
       .then(setEnrollInfo)
       .catch(() => {})
       .finally(() => setLoadingInfo(false));
@@ -116,9 +104,18 @@ export const FaceRegistrationPage: React.FC = () => {
     setStep(2);
 
     try {
-      const res = await apiClient.post<RegisterResult>('/face/register/', {
-        image_data:          preview,
-        is_primary:          !enrollInfo?.has_primary,  // first one becomes primary
+      // Validate and compress before upload
+      const validationError = validateImageDataUrl(preview);
+      if (validationError) {
+        setError(validationError);
+        setStep(1);
+        return;
+      }
+      const compressed = await compressImageForUpload(preview);
+
+      const res = await registerFace({
+        image_data:          compressed,
+        is_primary:          !enrollInfo?.has_primary,
         registration_source: 'WEBCAM_CAPTURE',
       });
 
@@ -126,7 +123,7 @@ export const FaceRegistrationPage: React.FC = () => {
       if (res.success) {
         setStep(3);
         // Refresh enrollment info
-        apiClient.get<EnrollmentInfo>('/face/enrollment-stats/').then(setEnrollInfo).catch(() => {});
+        getEnrollmentStats().then(setEnrollInfo).catch(() => {});
       } else {
         setError(res.error ?? 'Registration failed. Please try again.');
         setStep(1);

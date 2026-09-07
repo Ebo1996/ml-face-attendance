@@ -85,7 +85,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, onEdit }) => {
             <label className="block text-sm font-medium text-gray-500 mb-1">
               Member Since
             </label>
-            <p className="text-base text-gray-900">{formatDate(user.date_joined)}</p>
+            <p className="text-base text-gray-900">{user.date_joined ? formatDate(user.date_joined) : '—'}</p>
           </div>
 
           {/* User ID */}
