@@ -5,7 +5,7 @@
 import React from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
 export interface AttendanceChartData {
