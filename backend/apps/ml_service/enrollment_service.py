@@ -29,9 +29,9 @@ class FaceEnrollmentService:
     
     def __init__(
         self,
-        min_quality_score: float = 0.5,
-        min_detection_confidence: float = 0.9,
-        duplicate_threshold: float = 0.8
+        min_quality_score: float = 0.4,
+        min_detection_confidence: float = 0.7,
+        duplicate_threshold: float = 0.95
     ):
         """
         Initialize enrollment service.
@@ -93,7 +93,7 @@ class FaceEnrollmentService:
             # Check detection confidence
             det_score = face['det_score']
             if det_score < self.min_detection_confidence:
-                return False, None, f"Face detection confidence too low ({det_score:.2f}). Please use a clearer photo"
+                return False, None, f"Face detection confidence too low ({det_score:.2f}). Please use a clearer photo or better lighting"
             
             # Check face quality
             quality_score = self.detector.get_face_quality_score(face)

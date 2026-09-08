@@ -37,15 +37,22 @@ class FaceDetector:
         """Initialize the InsightFace detector."""
         try:
             logger.info("Initializing InsightFace detector...")
+            logger.info(f"Detection size: {self.det_size}")
+            
             self.app = FaceAnalysis(
                 name='buffalo_l',  # Pre-trained model name
                 providers=['CPUExecutionProvider']  # Use CPU (can switch to GPU with CUDAExecutionProvider)
             )
+            logger.info("FaceAnalysis object created, preparing model...")
+            
             self.app.prepare(ctx_id=0, det_size=self.det_size)
             logger.info("Face detector initialized successfully")
+            
         except Exception as e:
-            logger.error(f"Failed to initialize face detector: {e}")
-            raise
+            logger.error(f"Failed to initialize face detector: {e}", exc_info=True)
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error details: {str(e)}")
+            raise RuntimeError(f"Face detector initialization failed: {str(e)}") from e
     
     def detect_faces(self, image: np.ndarray, max_faces: int = 1) -> List[dict]:
         """

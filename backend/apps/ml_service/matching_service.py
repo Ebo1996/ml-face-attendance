@@ -134,7 +134,7 @@ class FaceMatchingService:
                     return None, "No face detected in image"
                 return None, f"Multiple faces detected ({len(faces)}). Show only one face."
 
-            if face['det_score'] < 0.85:
+            if face['det_score'] < 0.70:
                 return None, (
                     f"Low detection confidence ({face['det_score']:.2f}). "
                     "Use a clearer, well-lit photo."

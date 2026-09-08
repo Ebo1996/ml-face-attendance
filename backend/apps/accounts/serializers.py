@@ -14,7 +14,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """Serializer for user registration."""
+    """Serializer for user registration.
+    
+    Role is NOT accepted from the client — all new accounts are EMPLOYEE.
+    Role promotion to ADMIN is done by an existing admin only.
+    """
     
     password = serializers.CharField(
         write_only=True,
@@ -30,10 +34,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('email', 'password', 'password_confirm', 'role')
-        extra_kwargs = {
-            'role': {'default': 'EMPLOYEE'}
-        }
+        # role is intentionally excluded — always defaults to EMPLOYEE
+        fields = ('email', 'password', 'password_confirm')
     
     def validate(self, attrs):
         """Validate password confirmation."""
@@ -44,13 +46,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
     
     def create(self, validated_data):
-        """Create and return a new user."""
+        """Create and return a new user, always as EMPLOYEE."""
         validated_data.pop('password_confirm')
         
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            role=validated_data.get('role', 'EMPLOYEE')
+            role='EMPLOYEE',  # enforced server-side — never from client
         )
         
         return user

@@ -22,49 +22,35 @@ export class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
-    // Get token from localStorage
+
     const token = localStorage.getItem('access_token');
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    // Merge with options headers if provided
     if (options.headers) {
       Object.assign(headers, options.headers);
     }
 
-    // Add authorization header if token exists
     if (token && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      const response = await fetch(url, { ...options, headers });
 
-      // Handle 401 Unauthorized - token might be expired
+      // Handle 401 — try token refresh once
       if (response.status === 401 && token) {
-        // Try to refresh token
         const refreshed = await this.refreshToken();
         if (refreshed) {
-          // Retry the original request with new token
           headers['Authorization'] = `Bearer ${localStorage.getItem('access_token')}`;
-          const retryResponse = await fetch(url, {
-            ...options,
-            headers,
-          });
-          
+          const retryResponse = await fetch(url, { ...options, headers });
           if (!retryResponse.ok) {
             throw await this.handleError(retryResponse);
           }
-          
           return await retryResponse.json();
         } else {
-          // Refresh failed, logout user
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           window.location.href = '/login';
@@ -85,35 +71,37 @@ export class ApiClient {
     }
   }
 
-  private async handleError(response: Response): Promise<ApiError> {
+  private async handleError(response: Response): Promise<Error> {
     let errorData: any;
-    
+
     try {
       errorData = await response.json();
     } catch {
       errorData = { message: response.statusText };
     }
 
-    return {
-      message: errorData.message || errorData.detail || 'An error occurred',
-      errors: errorData.errors,
-      detail: errorData.detail,
-    };
+    // Extract the most meaningful error message from backend response
+    const message =
+      errorData.error ||
+      errorData.message ||
+      errorData.detail ||
+      (Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : null) ||
+      'An error occurred';
+
+    const err = new Error(message) as Error & { errors?: any; status?: number };
+    err.errors = errorData.errors;
+    err.status = response.status;
+    return err;
   }
 
   private async refreshToken(): Promise<boolean> {
     const refreshToken = localStorage.getItem('refresh_token');
-    
-    if (!refreshToken) {
-      return false;
-    }
+    if (!refreshToken) return false;
 
     try {
       const response = await fetch(`${this.baseURL}/auth/refresh/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),
       });
 
@@ -122,7 +110,6 @@ export class ApiClient {
         localStorage.setItem('access_token', data.access);
         return true;
       }
-      
       return false;
     } catch {
       return false;

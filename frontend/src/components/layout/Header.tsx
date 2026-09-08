@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
+import { makeIssue } from "zod";
 
 export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
@@ -49,6 +50,7 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showDropdown]);
+
 
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/80 sticky top-0 z-10 shadow-sm" role="banner">

@@ -467,9 +467,14 @@ def admin_export_csv(request):
     writer.writerow(['Date', 'Employee', 'Email', 'Status', 'Check In', 'Check Out',
                      'Work Hours', 'Method', 'Admin Override', 'Notes'])
     for r in queryset[:5000]:  # cap at 5000 rows
+        try:
+            p = r.user.employee_profile
+            emp_name = f"{p.first_name} {p.last_name}".strip() or r.user.email
+        except Exception:
+            emp_name = r.user.email
         writer.writerow([
             r.date,
-            f"{r.user.first_name} {r.user.last_name}".strip() or r.user.email,
+            emp_name,
             r.user.email,
             r.status,
             r.check_in_time.strftime('%H:%M') if r.check_in_time else '',

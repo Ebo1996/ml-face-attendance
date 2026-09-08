@@ -51,7 +51,11 @@ class FaceEmbeddingSerializer(serializers.ModelSerializer):
     
     def get_user_name(self, obj):
         """Get user's full name."""
-        return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.email
+        try:
+            p = obj.user.employee_profile
+            return f"{p.first_name} {p.last_name}".strip() or obj.user.email
+        except Exception:
+            return obj.user.email
 
 
 class FaceEnrollmentRequestSerializer(serializers.Serializer):

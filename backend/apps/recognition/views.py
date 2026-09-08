@@ -185,10 +185,12 @@ def recognize_face(request):
     else:
         att_result = attendance_svc.check_out_without_face(recognized_user)
 
-    full_name = (
-        f"{recognized_user.first_name} {recognized_user.last_name}".strip()
-        or recognized_user.email
-    )
+    # User model has no first_name/last_name — get from EmployeeProfile if available
+    try:
+        profile = recognized_user.employee_profile
+        full_name = f"{profile.first_name} {profile.last_name}".strip() or recognized_user.email
+    except Exception:
+        full_name = recognized_user.email
 
     return Response({
         'recognized':    True,

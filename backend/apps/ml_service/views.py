@@ -169,16 +169,17 @@ def enroll_face_api(request):
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         
     except Exception as e:
-        logger.error(f"Face enrollment failed: {e}")
+        logger.error(f"Face enrollment failed: {e}", exc_info=True)
         session.successful = False
         session.failure_reason = str(e)
         session.completed_at = timezone.now()
         session.save()
         
+        # Return the actual error message for debugging
         return Response(
             {
                 'success': False,
-                'error': 'Internal server error during enrollment'
+                'error': f'Enrollment error: {str(e)}'
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

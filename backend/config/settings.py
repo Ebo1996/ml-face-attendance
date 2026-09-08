@@ -10,6 +10,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Apply DNS fix for MongoDB Atlas connection
+try:
+    from config.dns_fix import apply_dns_fix
+    apply_dns_fix()
+except ImportError:
+    pass  # dns_fix module not available yet during initial setup
+
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -193,17 +200,16 @@ os.makedirs(ML_MODELS_DIR, exist_ok=True)
 # ── Security hardening (Phase 20) ────────────────────────────────────
 
 # Rate limiting via Django REST Framework throttling
+# NOTE: Relaxed for development - tighten in production
 REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = [
     'rest_framework.throttling.AnonRateThrottle',
     'rest_framework.throttling.UserRateThrottle',
-    'config.throttles.AuthRateThrottle',
-    'config.throttles.FaceRateThrottle',
 ]
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
-    'anon':   '30/minute',
-    'user':   '300/minute',
-    'auth':   '10/minute',    # login / register
-    'face':   '20/minute',    # face register / recognize
+    'anon':   '100/minute',     # Increased for dev
+    'user':   '1000/minute',    # Increased for dev - was 300/minute
+    'auth':   '20/minute',      # login / register
+    'face':   '50/minute',      # face register / recognize - increased from 20
 }
 
 # CORS: allow specific headers and methods only

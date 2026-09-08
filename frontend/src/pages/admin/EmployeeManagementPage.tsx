@@ -30,10 +30,13 @@ export const EmployeeManagementPage: React.FC = () => {
         employeeService.getEmployees(),
         employeeService.getStats(),
       ]);
-      setEmployees(employeesData);
+      console.log('Employees data:', employeesData);
+      console.log('Stats data:', statsData);
+      setEmployees(Array.isArray(employeesData) ? employeesData : []);
       setStats(statsData);
     } catch (error) {
-      // Error handling - could set error state here
+      console.error('Error loading employee data:', error);
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -47,9 +50,10 @@ export const EmployeeManagementPage: React.FC = () => {
         role: roleFilter || undefined,
         is_active: statusFilter ? statusFilter === 'active' : undefined,
       });
-      setEmployees(data);
+      setEmployees(Array.isArray(data) ? data : []);
     } catch (error) {
-      // Error handling - could set error state here
+      console.error('Error searching employees:', error);
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -237,7 +241,7 @@ export const EmployeeManagementPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((employee) => (
+                {Array.isArray(employees) && employees.map((employee) => (
                   <tr
                     key={employee.id}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
