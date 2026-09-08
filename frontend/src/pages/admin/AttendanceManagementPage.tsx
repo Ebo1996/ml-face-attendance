@@ -98,7 +98,7 @@ const MarkModal: React.FC<MarkModalProps> = ({ employees, prefillRecord, onClose
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select employee…</option>
-            {employees.map(e => (
+            {Array.isArray(employees) && employees.map(e => (
               <option key={e.id} value={e.id}>{e.full_name || e.email} — {e.email}</option>
             ))}
           </select>
@@ -214,7 +214,13 @@ export const AttendanceManagementPage: React.FC = () => {
 
   useEffect(() => {
     load(1);
-    employeeService.getEmployees().then(setEmployees).catch(() => {});
+    employeeService.getEmployees().then(data => {
+      // Handle both array and paginated response
+      const employeesList = Array.isArray(data) ? data : (data as any)?.results || [];
+      setEmployees(employeesList);
+    }).catch(() => {
+      setEmployees([]);
+    });
   }, []); // eslint-disable-line
 
   const applyFilters = () => load(1);

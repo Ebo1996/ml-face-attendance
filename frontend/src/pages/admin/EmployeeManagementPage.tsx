@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -12,6 +13,7 @@ import { Spinner } from '../../components/common/Spinner';
 import { employeeService, EmployeeListItem, EmployeeStats } from '../../services/employees';
 
 export const EmployeeManagementPage: React.FC = () => {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [stats, setStats] = useState<EmployeeStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,13 @@ export const EmployeeManagementPage: React.FC = () => {
       ]);
       console.log('Employees data:', employeesData);
       console.log('Stats data:', statsData);
-      setEmployees(Array.isArray(employeesData) ? employeesData : []);
+      
+      // Handle both array response and paginated response
+      const employeesList = Array.isArray(employeesData) 
+        ? employeesData 
+        : (employeesData as any)?.results || [];
+      
+      setEmployees(employeesList);
       setStats(statsData);
     } catch (error) {
       console.error('Error loading employee data:', error);
@@ -50,7 +58,13 @@ export const EmployeeManagementPage: React.FC = () => {
         role: roleFilter || undefined,
         is_active: statusFilter ? statusFilter === 'active' : undefined,
       });
-      setEmployees(Array.isArray(data) ? data : []);
+      
+      // Handle both array response and paginated response  
+      const employeesList = Array.isArray(data) 
+        ? data 
+        : (data as any)?.results || [];
+      
+      setEmployees(employeesList);
     } catch (error) {
       console.error('Error searching employees:', error);
       setEmployees([]);
@@ -64,6 +78,11 @@ export const EmployeeManagementPage: React.FC = () => {
     setRoleFilter('');
     setStatusFilter('');
     loadData();
+  };
+
+  const handleAddEmployee = () => {
+    // Navigate to registration page
+    navigate('/register');
   };
 
   const getStatusBadge = (isActive: boolean) => {
@@ -101,7 +120,7 @@ export const EmployeeManagementPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Employee Management</h1>
             <p className="text-gray-600 mt-1">Manage all employees and their information</p>
           </div>
-          <Button variant="default">
+          <Button variant="default" onClick={handleAddEmployee}>
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
