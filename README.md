@@ -260,30 +260,56 @@ AttendanceRecords
 
 ## 📸 Screenshots
 
-### Login & Registration
-![Login Page](docs/screenshots/login.png)
-*Modern login page with Google OAuth integration*
+### 🔐 Authentication
+<div align="center">
+  <img src="docs/screenshots/register.png" alt="Registration Page" width="800"/>
+  <p><em>Modern registration page with Google OAuth integration - Clean design with password strength indicator and "Sign up with Google" button</em></p>
+</div>
 
-### Dashboard
-![Admin Dashboard](docs/screenshots/admin-dashboard.png)
-*Admin dashboard with real-time attendance statistics*
+---
 
-![Employee Dashboard](docs/screenshots/employee-dashboard.png)
-*Employee dashboard with personal attendance history*
+### 📊 Admin Dashboard
+<div align="center">
+  <img src="docs/screenshots/admin-dashboard.png" alt="Admin Dashboard" width="800"/>
+  <p><em>Comprehensive admin dashboard featuring real-time attendance statistics, 14-day trend analysis, daily attendance breakdown, and intuitive navigation sidebar. Shows key metrics including Total Employees, Attendance Rate, Late Today, and Absent Today with color-coded cards.</em></p>
+</div>
 
-### Face Recognition
-![Face Enrollment](docs/screenshots/face-enrollment.png)
-*Guided face enrollment with quality validation*
+---
 
-![Check-In](docs/screenshots/check-in.png)
-*Real-time face recognition for attendance marking*
+### 👤 Employee Dashboard
+<div align="center">
+  <img src="docs/screenshots/employee-dashboard.png" alt="Employee Dashboard" width="800"/>
+  <p><em>Personalized employee dashboard featuring welcome banner with real-time clock, attendance status cards (Today's Status, This Month stats, Attendance Rate, Late Arrivals), weekly attendance visualization chart, and quick action shortcuts for Check In, Attendance History, and Profile Updates. Clean sidebar navigation for seamless user experience.</em></p>
+</div>
 
-### Management
-![Employee Management](docs/screenshots/employee-management.png)
-*Complete employee CRUD with search and filters*
+---
 
-![Reports](docs/screenshots/reports.png)
-*Advanced reporting with CSV export*
+### 👤 Face Recognition
+<div align="center">
+  <img src="docs/screenshots/face-enrollment.png" alt="Face Enrollment" width="800"/>
+  <p><em>4-step guided face enrollment process: Position → Capture → Register → Done. Features live camera feed with circular positioning guide, real-time instructions ("Centre your face in the oval - Good lighting - Look directly at the camera"), blue "Capture Photo" button, and progress indicators. Clean sidebar navigation with "Register Face" highlighted and "Get Started" quick action button for seamless onboarding.</em></p>
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/check-in.png" alt="Check-In" width="800"/>
+  <p><em>Mark Attendance interface with Check-In/Check-Out toggle tabs and live camera feed. Features circular positioning guide, real-time instructions ("Look directly at the camera - Good lighting - Single face only"), and blue "Capture Photo" button. Sidebar shows "Mark Attendance" active navigation with "Register Face" quick action for new users. Clean employee header displays email (ebisa890@gmail.com) and EMPLOYEE role badge.</em></p>
+</div>
+
+---
+
+### 👥 Employee Management
+<div align="center">
+  <img src="docs/screenshots/employee-management.png" alt="Employee Management" width="800"/>
+  <p><em>Comprehensive employee management interface with statistics cards (Total Employees: 11, Active: 11, Admins: 2, Inactive: 0), "+ Add Employee" button, and advanced filtering (search by name/email/ID, role dropdown "All Roles", status dropdown "All Status"). Data table displays Name, Email, Department, Position, Role badges (EMPLOYEE/ADMIN), Status (Active), and action buttons (View, Edit, Deactivate). Clean table design with color-coded role badges and real-time search functionality. Admin header shows ebisaberhanu1996@gmail.com with ADMIN green badge.</em></p>
+</div>
+
+---
+
+### 📈 Reports & Analytics
+<div align="center">
+  <img src="docs/screenshots/reports.png" alt="Reports" width="800"/>
+  <p><em>Advanced reporting system with date range pickers (Start Date: 08/31/2026, End Date: 09/29/2026), "Attendance Status" dropdown filter (All Statuses), and optional "Employee ID" search field. Features export statistics showing "Estimated Records: 1500", "Date Range: 8/31/2026 - 9/29/2026", and "File Size: 150KB". Two download cards: Blue "My Attendance Report" (personal data with check-in/out times, work hours, status records) and Purple "Company-Wide Report" (all employee data, max 5,000 records). Each card has descriptive text and prominent "Download" buttons. Admin navigation sidebar with Reports highlighted.</em></p>
+</div>
 
 ---
 
