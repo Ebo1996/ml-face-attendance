@@ -54,6 +54,12 @@ export interface AuthUser {
   date_joined?: string;
   first_name?: string;
   last_name?:  string;
+  // Profile fields (from employee_profile)
+  phone?:       string;
+  department?:  string;
+  position?:    string;
+  employee_id?: string;
+  avatar_url?:  string;
 }
 
 export interface LoginCredentials {
