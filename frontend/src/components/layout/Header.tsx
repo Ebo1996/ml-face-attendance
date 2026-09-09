@@ -6,7 +6,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
-import { makeIssue } from "zod";
 
 export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();

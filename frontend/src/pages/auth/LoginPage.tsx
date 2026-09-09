@@ -1,10 +1,12 @@
 /**
- * Login Page — professional split-screen design
+ * Login Page — professional split-screen design with Google OAuth
  */
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { GoogleOAuthButton } from '../../components/auth/GoogleOAuthButton';
+import { apiClient } from '../../services/api';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -46,6 +48,34 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsLoading(true);
+    setGeneralError('');
+    try {
+      const response = await apiClient.post<{
+        access: string;
+        refresh: string;
+        user: { id: string; email: string; role: string };
+      }>('/auth/google/', { credential });
+      
+      // Store tokens
+      localStorage.setItem('access_token', response.access);
+      localStorage.setItem('refresh_token', response.refresh);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+      window.location.reload(); // Refresh to update auth context
+    } catch (error: any) {
+      setGeneralError(error.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setGeneralError('Google sign-in was cancelled or failed.');
   };
 
   return (
@@ -216,6 +246,20 @@ export const LoginPage: React.FC = () => {
               ) : 'Sign In'}
             </button>
           </form>
+
+          {/* Google OAuth Divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-200" />
+            <span className="text-xs text-slate-400 font-medium">OR</span>
+            <div className="flex-1 h-px bg-slate-200" />
+          </div>
+
+          {/* Google Sign In */}
+          <GoogleOAuthButton
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            text="signin"
+          />
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">

@@ -7,11 +7,13 @@ from .views import (
     change_password_view,
     CustomTokenRefreshView,
 )
+from .google_auth import google_auth
 
 urlpatterns = [
     # Authentication endpoints
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', login_view, name='login'),
+    path('google/', google_auth, name='google-auth'),  # Google OAuth
     path('logout/', logout_view, name='logout'),
     path('me/', current_user_view, name='current-user'),
     path('refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),

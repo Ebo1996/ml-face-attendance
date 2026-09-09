@@ -1,10 +1,12 @@
 /**
- * Register Page — professional split-screen design
+ * Register Page — professional split-screen design with Google OAuth
  */
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { GoogleOAuthButton } from '../../components/auth/GoogleOAuthButton';
+import { apiClient } from '../../services/api';
 
 const PasswordStrength: React.FC<{ password: string }> = ({ password }) => {
   const checks = [
@@ -50,7 +52,7 @@ export const RegisterPage: React.FC = () => {
     email: '',
     password: '',
     password_confirm: '',
-    role: 'EMPLOYEE' as UserRole,  // always Employee — role assigned by admin
+    role: 'EMPLOYEE' as const,  // always Employee — role assigned by admin
   });
   const [errors, setErrors]     = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
@@ -93,6 +95,34 @@ export const RegisterPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsLoading(true);
+    setGeneralError('');
+    try {
+      const response = await apiClient.post<{
+        access: string;
+        refresh: string;
+        user: { id: string; email: string; role: string };
+      }>('/auth/google/', { credential });
+      
+      // Store tokens
+      localStorage.setItem('access_token', response.access);
+      localStorage.setItem('refresh_token', response.refresh);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+      window.location.reload(); // Refresh to update auth context
+    } catch (error: any) {
+      setGeneralError(error.message || 'Google sign-up failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setGeneralError('Google sign-up was cancelled or failed.');
   };
 
   const EyeIcon = ({ show }: { show: boolean }) => show ? (
@@ -284,6 +314,20 @@ export const RegisterPage: React.FC = () => {
               ) : 'Create Account'}
             </button>
           </form>
+
+          {/* Google OAuth Divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-200" />
+            <span className="text-xs text-slate-400 font-medium">OR</span>
+            <div className="flex-1 h-px bg-slate-200" />
+          </div>
+
+          {/* Google Sign Up */}
+          <GoogleOAuthButton
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            text="signup"
+          />
 
           {/* Login link */}
           <div className="my-6 flex items-center gap-3">
