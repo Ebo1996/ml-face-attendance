@@ -99,7 +99,7 @@ def login_view(request):
 @permission_classes([IsAuthenticated])
 def current_user_view(request):
     """
-    API endpoint to get current authenticated user.
+    API endpoint to get current authenticated user with profile.
     
     GET /api/auth/me/
     
@@ -109,11 +109,37 @@ def current_user_view(request):
         "email": "user@example.com",
         "role": "EMPLOYEE",
         "is_active": true,
-        "date_joined": "2024-01-01T00:00:00Z"
+        "date_joined": "2024-01-01T00:00:00Z",
+        "first_name": "John",
+        "last_name": "Doe",
+        "phone": "+1234567890",
+        "department": "Engineering",
+        "position": "Software Engineer",
+        "employee_id": "EMP001",
+        "avatar_url": "http://..."
     }
     """
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    user = request.user
+    
+    # Get employee profile if exists
+    profile_data = {}
+    if hasattr(user, 'employee_profile'):
+        profile = user.employee_profile
+        profile_data = {
+            'first_name': profile.first_name,
+            'last_name': profile.last_name,
+            'phone': profile.phone,
+            'department': profile.department,
+            'position': profile.position,
+            'employee_id': profile.employee_id,
+            'avatar_url': request.build_absolute_uri(profile.avatar.url) if profile.avatar else None,
+        }
+    
+    # Combine user and profile data
+    user_data = UserSerializer(user).data
+    user_data.update(profile_data)
+    
+    return Response(user_data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
