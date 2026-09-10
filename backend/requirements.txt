@@ -4,7 +4,7 @@ djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.1
 
 # MongoDB
-django-mongodb-backend==5.2.4
+django-mongodb-backend==6.1.0
 pymongo>=4.7,<5.0
 dnspython==2.5.0
 
