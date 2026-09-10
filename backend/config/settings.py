@@ -95,11 +95,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database - MongoDB
 # Using django-mongodb-backend (public preview technology)
+_mongo_options = {}
+# tlsAllowInvalidCertificates is needed on Python 3.13 dev environments
+# due to an OpenSSL/MongoDB Atlas TLS compatibility issue.
+# Set TLS_ALLOW_INVALID_CERTS=False in production when using Python 3.11+
+if os.getenv('TLS_ALLOW_INVALID_CERTS', 'True') == 'True':
+    _mongo_options['tlsAllowInvalidCertificates'] = True
+
 DATABASES = {
     'default': {
         'ENGINE': 'django_mongodb_backend',
         'NAME': os.getenv('MONGODB_DATABASE', 'face_attendance'),
-        'HOST': os.getenv('MONGODB_URI'),  # Full Atlas connection string
+        'HOST': os.getenv('MONGODB_URI'),
+        'OPTIONS': _mongo_options,
     }
 }
 
@@ -197,19 +205,18 @@ ML_MODELS_DIR = BASE_DIR / 'ml' / 'models'
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 os.makedirs(ML_MODELS_DIR, exist_ok=True)
 
-# ── Security hardening (Phase 20) ────────────────────────────────────
+# ── Security hardening ────────────────────────────────────────────────
 
-# Rate limiting via Django REST Framework throttling
-# NOTE: Relaxed for development - tighten in production
+# Rate limiting — controlled via environment variables so dev and prod differ
 REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = [
     'rest_framework.throttling.AnonRateThrottle',
     'rest_framework.throttling.UserRateThrottle',
 ]
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
-    'anon':   '100/minute',     # Increased for dev
-    'user':   '1000/minute',    # Increased for dev - was 300/minute
-    'auth':   '20/minute',      # login / register
-    'face':   '50/minute',      # face register / recognize - increased from 20
+    'anon':  os.getenv('THROTTLE_ANON',  '10/minute'  if not DEBUG else '100/minute'),
+    'user':  os.getenv('THROTTLE_USER',  '60/minute'  if not DEBUG else '1000/minute'),
+    'auth':  os.getenv('THROTTLE_AUTH',  '5/minute'   if not DEBUG else '20/minute'),
+    'face':  os.getenv('THROTTLE_FACE',  '20/minute'  if not DEBUG else '50/minute'),
 }
 
 # CORS: allow specific headers and methods only
@@ -229,8 +236,9 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Security headers (active in production when DEBUG=False)
+# Note: X-Frame-Options is set by nginx to avoid duplicate headers
 if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000        # 1 year
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_SSL_REDIRECT = True
@@ -238,7 +246,6 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
 
 # File upload limits
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB

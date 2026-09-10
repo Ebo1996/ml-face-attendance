@@ -9,8 +9,9 @@ services:
     container_name: face-attendance-backend
     env_file:
       - ./backend/.env.production
-    ports:
-      - "8000:8000"
+    # No ports exposed publicly — nginx proxies internally
+    expose:
+      - "8000"
     volumes:
       - backend_media:/app/media
       - backend_static:/app/staticfiles
@@ -24,17 +25,19 @@ services:
       start_period: 40s
     networks:
       - face-attendance-network
-    depends_on:
-      - mongodb
 
   # Frontend - React App
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+        - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     container_name: face-attendance-frontend
-    ports:
-      - "3000:80"
+    # No ports exposed publicly — nginx proxies internally
+    expose:
+      - "80"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]

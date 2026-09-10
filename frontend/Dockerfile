@@ -7,16 +7,22 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Accept build-time env vars for Vite (baked into the bundle at build time)
+ARG VITE_API_BASE_URL
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (uses package-lock.json for reproducible builds)
 RUN npm ci --silent
 
 # Copy source files
 COPY . .
 
-# Build the application
+# Build the production bundle (tsc + vite build)
 RUN npm run build
 
 # Stage 2: Serve with nginx

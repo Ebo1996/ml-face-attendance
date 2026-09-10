@@ -12,9 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies for OpenCV and InsightFace
+# Install system dependencies for OpenCV (headless) and InsightFace
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -22,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -37,15 +37,16 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p /app/media /app/staticfiles /app/ml/models
 
-# Collect static files
-RUN python manage.py collectstatic --no-input
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/').read()" || exit 1
+    CMD curl -f http://localhost:8000/api/health/ || exit 1
 
-# Run with gunicorn
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
