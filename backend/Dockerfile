@@ -2,7 +2,7 @@
 # Backend Dockerfile - Django + Face Recognition
 # ========================================
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
